@@ -11,6 +11,8 @@ const {
   fetchSendPasswordResetEmail,
   googleAuth,
   googleAuthCallback,
+  facebookAuth,
+  facebookAuthCallback,
 } = require("../controllers/authController.js");
 const { body } = require("express-validator");
 
@@ -72,6 +74,10 @@ authRouter.put(
 
 authRouter.get("/google", googleAuth);
 
+authRouter.get("/facebook", facebookAuth);
+
 authRouter.get("/google/callback", googleAuthCallback);
+
+authRouter.get("/facebook/callback", facebookAuthCallback);
 
 module.exports = authRouter;

@@ -330,6 +330,17 @@ const googleAuth = async (req, res) => {
   passport.authenticate("google", { scope: ["profile", "email"] })(req, res);
 };
 
+const facebookAuth = async (req, res, next) => {
+  const { isRemember, ipAddress, deviceInfo, loggedAt } = req.query;
+
+  req.session.isRemember = isRemember;
+  req.session.ipAddress = ipAddress;
+  req.session.deviceInfo = JSON.parse(deviceInfo);
+  req.session.loggedAt = loggedAt;
+
+  passport.authenticate("facebook", { scope: ["email"] })(req, res, next);
+};
+
 const googleAuthCallback = async (req, res) => {
   const accessToken = jwt.sign(
     { secret: process.env.SECRET_KEY },
@@ -342,7 +353,7 @@ const googleAuthCallback = async (req, res) => {
   passport.authenticate("google", { session: false }, async (err, user) => {
     if (err || !user) {
       return res.redirect(
-        `${process.env.CLIENT_URL}/handleLoginWithGoogle?success=false&message=Đăng nhập bằng Google thất bại: ${err}&accessToken=${accessToken}`
+        `${process.env.CLIENT_URL}/handleLoginWithFacebookAndGoogle?success=false&message=Đăng nhập bằng Google thất bại: ${err}&accessToken=${accessToken}`
       );
     }
 
@@ -367,7 +378,7 @@ const googleAuthCallback = async (req, res) => {
 
       if (!userUpdateRemember) {
         return res.redirect(
-          `${process.env.CLIENT_URL}/handleLoginWithGoogle?success=false&message=Không tìm thấy người dùng để cập nhật&accessToken=${accessToken}`
+          `${process.env.CLIENT_URL}/handleLoginWithFacebookAndGoogle?success=false&message=Không tìm thấy người dùng để cập nhật&accessToken=${accessToken}`
         );
       }
 
@@ -377,12 +388,70 @@ const googleAuthCallback = async (req, res) => {
       });
 
       return res.redirect(
-        `${process.env.CLIENT_URL}/handleLoginWithGoogle?success=true&message=Đăng nhập thành công&data=${token}&accessToken=${accessToken}`
+        `${process.env.CLIENT_URL}/handleLoginWithFacebookAndGoogle?success=true&message=Đăng nhập thành công&data=${token}&accessToken=${accessToken}`
       );
     } catch (error) {
       console.error("Lỗi khi tạo JWT token:", error);
       return res.redirect(
-        `${process.env.CLIENT_URL}/handleLoginWithGoogle?success=false&message=Xảy ra lỗi server khi tạo token&accessToken=${accessToken}`
+        `${process.env.CLIENT_URL}/handleLoginWithFacebookAndGoogle?success=false&message=Xảy ra lỗi server khi tạo token&accessToken=${accessToken}`
+      );
+    }
+  })(req, res);
+};
+
+const facebookAuthCallback = async (req, res) => {
+  const accessToken = jwt.sign(
+    { secret: process.env.SECRET_KEY },
+    process.env.JWT_SECRET,
+    {
+      expiresIn: "10m",
+    }
+  );
+
+  passport.authenticate("facebook", { session: false }, async (err, user) => {
+    if (err || !user) {
+      return res.redirect(
+        `${process.env.CLIENT_URL}/handleLoginWithFacebookAndGoogle?success=false&message=Đăng nhập bằng Facebook thất bại: ${err}&accessToken=${accessToken}`
+      );
+    }
+
+    try {
+      // Cập nhật isRemember và lưu lịch sử đăng nhập
+      const userUpdateRemember = await User.findByIdAndUpdate(
+        user._id,
+        {
+          isRemember: req.session.isRemember,
+          $push: {
+            loginHistory: {
+              ipAddress: req.session.ipAddress,
+              device: req.session.deviceInfo,
+              loggedAt: req.session.loggedAt,
+            },
+          },
+          lastActiveAt: Date.now(),
+          isActive: true,
+        },
+        { new: true }
+      );
+
+      if (!userUpdateRemember) {
+        return res.redirect(
+          `${process.env.CLIENT_URL}/handleLoginWithFacebookAndGoogle?success=false&message=Không tìm thấy người dùng để cập nhật&accessToken=${accessToken}`
+        );
+      }
+
+      const payload = { userId: user._id };
+      const token = jwt.sign(payload, process.env.JWT_SECRET, {
+        expiresIn: "30d",
+      });
+
+      return res.redirect(
+        `${process.env.CLIENT_URL}/handleLoginWithFacebookAndGoogle?success=true&message=Đăng nhập thành công&data=${token}&accessToken=${accessToken}`
+      );
+    } catch (error) {
+      console.error("Lỗi khi tạo JWT token:", error);
+      return res.redirect(
+        `${process.env.CLIENT_URL}/handleLoginWithFacebookAndGoogle?success=false&message=Xảy ra lỗi server khi tạo token&accessToken=${accessToken}`
       );
     }
   })(req, res);
@@ -397,5 +466,7 @@ module.exports = {
   fetchSendPasswordResetEmail,
   updatePassword,
   googleAuth,
+  facebookAuth,
   googleAuthCallback,
+  facebookAuthCallback,
 };

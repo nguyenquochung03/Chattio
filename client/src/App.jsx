@@ -7,7 +7,7 @@ import TwoStepVerification from "./components/TwoStepVerification";
 import AuthPage from "./pages/AuthPage";
 import NotFoundPage from "./pages/NotFoundPage";
 import ChangePassword from "./components/ChangePassword";
-import HandleLoginWithGoogle from "./pages/HandleLoginWithGoogle";
+import HandleLoginWithFacebookAndGoogle from "./pages/HandleLoginWithFacebookAndGoogle";
 
 function App() {
   const { token, emailLogin } = useClientInfo();
@@ -16,8 +16,8 @@ function App() {
     <Routes>
       {/* Trang xử lý việc đăng nhập bằng Google */}
       <Route
-        path="/handleLoginWithGoogle"
-        element={<HandleLoginWithGoogle />}
+        path="/handleLoginWithFacebookAndGoogle"
+        element={<HandleLoginWithFacebookAndGoogle />}
       />
       {/* Trang đăng ký, đăng nhập */}
       <Route

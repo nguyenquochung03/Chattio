@@ -12,9 +12,14 @@ const userSchema = new Schema(
     },
     email: {
       type: String,
-      required: true,
       lowercase: true,
       match: /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,6}$/,
+      default: "",
+    },
+    facebookId: {
+      type: String,
+      unique: true,
+      default: "",
     },
     password: {
       type: String,

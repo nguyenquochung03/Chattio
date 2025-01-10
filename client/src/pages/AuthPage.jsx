@@ -222,6 +222,14 @@ const AuthPage = () => {
     }
   };
 
+  const handleFacebookLogin = async (isRegister) => {
+    if (isRegister) {
+      await userContext.fetchFacebookLogin(true);
+    } else {
+      await userContext.fetchFacebookLogin(rememberMe);
+    }
+  };
+
   return (
     <Box
       sx={{
@@ -412,7 +420,7 @@ const AuthPage = () => {
                     "&:hover": { backgroundColor: "#145dbb" },
                     marginBottom: "8px",
                   }}
-                  onClick={() => alert("Đăng nhập với Facebook")}
+                  onClick={() => handleFacebookLogin(false)}
                 >
                   Facebook
                 </Button>
@@ -568,7 +576,7 @@ const AuthPage = () => {
                     "&:hover": { backgroundColor: "#145dbb" },
                     marginBottom: "8px",
                   }}
-                  onClick={() => alert("Đăng ký với Facebook")}
+                  onClick={() => handleFacebookLogin(true)}
                 >
                   Facebook
                 </Button>

@@ -6,6 +6,7 @@ const session = require("express-session");
 const connectDB = require("./config/db");
 const userRouter = require("./routes/userRouter");
 const authRouter = require("./routes/authRouter");
+require("./middleware/authFacebook");
 require("./middleware/authGoogle");
 
 require("dotenv").config();

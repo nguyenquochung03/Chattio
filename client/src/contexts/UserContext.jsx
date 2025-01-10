@@ -310,6 +310,39 @@ export const UserProvider = ({ children }) => {
     }
   };
 
+  const fetchFacebookLogin = async (rememberMe) => {
+    showLoading();
+    try {
+      // Lấy địa chỉ IP
+      const ipRes = await axios.get("https://api.ipify.org?format=json");
+      const ipAddress = ipRes.data.ip;
+
+      // Lấy thông tin thiết bị
+      const parser = new UAParser();
+      const deviceInfo = parser.getResult();
+
+      // Thời gian đăng nhập
+      const loggedAt = new Date().toISOString();
+
+      // Chuyển hướng đến Facebook với dữ liệu đính kèm
+      window.location.href = `${
+        clientInfo.serverName
+      }/api/users/auth/facebook?isRemember=${rememberMe}&ipAddress=${ipAddress}&deviceInfo=${encodeURIComponent(
+        JSON.stringify(deviceInfo)
+      )}&loggedAt=${loggedAt}`;
+
+      showSnackbar("Đang chuyển hướng để đăng nhập với Facebook...", "info");
+      return true;
+    } catch (err) {
+      hideLoading();
+      showSnackbar(`Có lỗi xảy ra khi đăng nhập bằng Facebook:`, err);
+      console.error(`Có lỗi xảy ra khi đăng nhập bằng Facebook:`, err);
+      return false;
+    } finally {
+      hideLoading();
+    }
+  };
+
   const fetchMe = async () => {
     showLoading();
     try {
@@ -354,6 +387,7 @@ export const UserProvider = ({ children }) => {
         fetchSendPasswordResetEmail,
         fetchUpdatePassword,
         fetchGoogleLogin,
+        fetchFacebookLogin,
       }}
     >
       {children}

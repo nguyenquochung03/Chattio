@@ -6,7 +6,7 @@ import { useLoading } from "../contexts/LoadingContext";
 import { useClientInfo } from "../contexts/ClientInfoContext";
 import { useSnackbar } from "../contexts/SnackbarContext";
 
-const HandleLoginWithGoogle = () => {
+const HandleLoginWithFacebookAndGoogle = () => {
   const navigate = useNavigate();
   const { showLoading, hideLoading } = useLoading();
   const { showSnackbar } = useSnackbar();
@@ -33,7 +33,7 @@ const HandleLoginWithGoogle = () => {
         }
 
         // Nếu đúng là server gọi tới component thì thực hiện xử lý
-        if (success) {
+        if (success === "true") {
           clientInfo.saveToken(data);
           navigate("/");
           showSnackbar(message, "success");
@@ -67,4 +67,4 @@ const HandleLoginWithGoogle = () => {
   );
 };
 
-export default HandleLoginWithGoogle;
+export default HandleLoginWithFacebookAndGoogle;
