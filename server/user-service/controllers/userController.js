@@ -63,7 +63,7 @@ const fetchUserById = async (req, res) => {
   }
 };
 
-const searchUsersByUsername = async (req, res) => {
+const searchUsersByUsernameForAddFriend = async (req, res) => {
   try {
     const { username } = req.query;
 
@@ -198,7 +198,7 @@ const updateUserConversationId = async (req, res) => {
 module.exports = {
   fetchUserProfileByToken,
   fetchUserById,
-  searchUsersByUsername,
+  searchUsersByUsernameForAddFriend,
   fetchUsersByIds,
   updateUserStatusById,
   updateUserConversationId,

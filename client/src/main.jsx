@@ -14,6 +14,12 @@ createRoot(document.getElementById("root")).render(
         <LoadingProvider>
           <ClientInfoProvider>
             <UserProvider>
+              <div
+                style={{
+                  fontFamily:
+                    '"Poppins", "Roboto", "Helvetica", "Arial", sans-serif',
+                }}
+              ></div>
               <App />
             </UserProvider>
           </ClientInfoProvider>
