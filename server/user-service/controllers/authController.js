@@ -219,11 +219,14 @@ const confirmEmail = async (req, res) => {
     if (result.success) {
       return res.json({
         success: true,
+        status: 200,
         message: result.message,
+        data: result.data,
       });
     } else {
       return res.json({
         success: false,
+        status: 400,
         message: result.message,
       });
     }
@@ -457,6 +460,37 @@ const facebookAuthCallback = async (req, res) => {
   })(req, res);
 };
 
+const logoutUser = async (req, res) => {
+  try {
+    const { userId } = req.body;
+
+    const updatedUser = await User.findByIdAndUpdate(
+      userId,
+      {
+        lastActiveAt: Date.now(),
+        isActive: false,
+        inCall: false,
+        callWith: null,
+      },
+      { new: true }
+    );
+
+    return res.json({
+      success: true,
+      status: 200,
+      message: "Thông tin người dùng được cập nhật. Đăng xuất thành công",
+      user: updatedUser,
+    });
+  } catch (error) {
+    console.error(error);
+    return res.json({
+      success: false,
+      status: 500,
+      message: `Đã xảy ra lỗi server khi đăng xuất, vui lòng thử lại sau: ${error.message}`,
+    });
+  }
+};
+
 module.exports = {
   validateToken,
   register,
@@ -469,4 +503,5 @@ module.exports = {
   facebookAuth,
   googleAuthCallback,
   facebookAuthCallback,
+  logoutUser,
 };

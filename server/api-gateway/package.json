@@ -1,7 +1,8 @@
 {
   "scripts": {
     "start:user-service": "cd ../user-service && npm run user-service",
-    "start:services": "concurrently \"npm run start:user-service\"",
+    "start:friend-service": "cd ../friend-service && npm run friend-service",
+    "start:services": "concurrently \"npm run start:user-service\" \"npm run start:friend-service\"",
     "start:gateway": "nodemon server.js",
     "start": "concurrently \"npm run start:services\" \"npm run start:gateway\""
   },

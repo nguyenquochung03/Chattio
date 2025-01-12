@@ -6,6 +6,7 @@ const session = require("express-session");
 const connectDB = require("./config/db");
 const userRouter = require("./routes/userRouter");
 const authRouter = require("./routes/authRouter");
+const privacySettingsRouter = require("./routes/privacySettingsRouter");
 require("./middleware/authFacebook");
 require("./middleware/authGoogle");
 
@@ -39,6 +40,7 @@ app.get("/", (req, res) => {
 
 app.use("/user", userRouter);
 app.use("/auth", authRouter);
+app.use("/setting", privacySettingsRouter);
 
 const server = http.createServer(app);
 

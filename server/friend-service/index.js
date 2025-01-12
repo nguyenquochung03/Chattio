@@ -2,7 +2,8 @@ const express = require("express");
 const cors = require("cors");
 const http = require("http");
 const connectDB = require("./config/db");
-const friendRouter = require("./routes/friendRouter");
+const friendRouter = require("./routes/friendsRouter");
+const friendRequestsRouter = require("./routes/friendRequestsRouter");
 
 require("dotenv").config();
 
@@ -14,7 +15,8 @@ app.use(cors());
 
 connectDB();
 
-app.use("/", friendRouter);
+app.use("/friendRequests", friendRequestsRouter);
+app.use("/friend", friendRouter);
 
 app.get("/", (req, res) => {
   res.send("Chào mừng đến với server Node.js với Express!");

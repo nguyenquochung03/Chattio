@@ -46,7 +46,6 @@ const TwoStepVerification = () => {
         clientInfo.saveToken(clientInfo.tempToken);
         navigate("/home");
       }
-      clientInfo.setTempToken("");
     }
   };
 

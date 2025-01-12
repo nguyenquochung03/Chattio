@@ -5,50 +5,71 @@ import { jwtDecode } from "jwt-decode";
 import { useLoading } from "../contexts/LoadingContext";
 import { useClientInfo } from "../contexts/ClientInfoContext";
 import { useSnackbar } from "../contexts/SnackbarContext";
+import { useUser } from "../contexts/UserContext";
 
 const HandleLoginWithFacebookAndGoogle = () => {
   const navigate = useNavigate();
   const { showLoading, hideLoading } = useLoading();
   const { showSnackbar } = useSnackbar();
   const clientInfo = useClientInfo();
+  const userContext = useUser();
 
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
-    const success = urlParams.get("success");
-    const message = urlParams.get("message");
-    const data = urlParams.get("data");
-    const accessToken = urlParams.get("accessToken");
 
-    // Kiểm tra xem có đúng là server gọi tới component
-    if (!success || !message || !accessToken) {
-      navigate("/");
-      return;
-    } else {
-      showLoading();
-      try {
-        const decodedAccessToken = jwtDecode(accessToken);
-        if (decodedAccessToken.secret !== clientInfo.secret) {
-          navigate("/");
-          return;
-        }
+    if (urlParams.size !== 0) {
+      const success = urlParams.get("success");
+      const message = urlParams.get("message");
+      const data = urlParams.get("data");
+      const accessToken = urlParams.get("accessToken");
 
-        // Nếu đúng là server gọi tới component thì thực hiện xử lý
-        if (success === "true") {
-          clientInfo.saveToken(data);
-          navigate("/");
-          showSnackbar(message, "success");
-        } else {
-          navigate("/");
-          showSnackbar(message, "error");
-        }
-      } catch (error) {
+      // Kiểm tra xem có đúng là server gọi tới component
+      if (!success || !message || !accessToken) {
         navigate("/");
+        return;
+      } else {
         showLoading();
-      } finally {
-        hideLoading();
+        try {
+          const decodedAccessToken = jwtDecode(accessToken);
+          if (decodedAccessToken.secret !== clientInfo.secret) {
+            navigate("/");
+            return;
+          }
+
+          // Nếu đúng là server gọi tới component thì thực hiện xử lý
+          if (success === "true") {
+            clientInfo.saveToken(data);
+            navigate("/");
+            showSnackbar(message, "success");
+          } else {
+            navigate("/");
+            showSnackbar(message, "error");
+          }
+        } catch (error) {
+          navigate("/");
+          showLoading();
+        } finally {
+          hideLoading();
+        }
       }
     }
   }, []);
+
+  useEffect(() => {
+    const loadUserData = async () => {
+      const result = await userContext.fetchMe();
+
+      if (!result.success) {
+        clientInfo.removeToken();
+      } else {
+        clientInfo.setUser(result.data);
+      }
+    };
+
+    if (clientInfo.token.length !== 0) {
+      loadUserData();
+    }
+  }, [clientInfo.token]);
 
   return (
     <Box

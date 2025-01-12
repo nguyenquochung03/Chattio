@@ -34,27 +34,27 @@ const CustomSnackbar = ({
       onClose={onClose}
       TransitionComponent={TransitionUp}
       anchorOrigin={anchorOrigin}
-      action={
-        <IconButton
-          size="small"
-          aria-label="close"
-          color="inherit"
-          onClick={onClose}
-        >
-          <Close fontSize="small" />
-        </IconButton>
-      }
     >
       <Alert
+        onClose={onClose}
         severity={severity}
+        variant="filled"
         sx={{
           width: "100%",
-          padding: "10px 20px",
+          backgroundColor:
+            severity === "error"
+              ? "error.light"
+              : severity === "info"
+              ? "info"
+              : "success.light",
+          color: "white",
+          padding: "12px 20px",
           display: "flex",
           alignItems: "center",
           fontSize: "16px",
-          borderRadius: "8px",
-          boxShadow: "0px 4px 6px rgba(0, 0, 0, 0.1)",
+          borderRadius: "12px", // Thêm góc bo mềm mại
+          boxShadow: "0px 4px 6px rgba(0, 0, 0, 0.2)", // Đổ bóng nhẹ
+          fontWeight: 500,
         }}
       >
         {message}

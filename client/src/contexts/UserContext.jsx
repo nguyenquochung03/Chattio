@@ -21,8 +21,12 @@ export const UserProvider = ({ children }) => {
       if (clientInfo.token.length !== 0) {
         const result = await fetchMe();
 
-        if (!result) {
-          clientInfo.removeToken();
+        if (result.success) {
+          if (!result.data.isRemember) {
+            clientInfo.removeToken();
+          } else {
+            clientInfo.setUser(result.data);
+          }
         }
       }
     };
@@ -176,6 +180,7 @@ export const UserProvider = ({ children }) => {
       );
 
       if (response.data.success) {
+        clientInfo.setUser(response.data.data);
         showSnackbar(response.data.message, "success");
         return true;
       } else {
@@ -343,6 +348,70 @@ export const UserProvider = ({ children }) => {
     }
   };
 
+  const fetchLogout = async () => {
+    showLoading();
+    try {
+      const response = await axios.post(
+        `${clientInfo.serverName}/api/users/auth/logout`,
+        {
+          userId: clientInfo.user._id,
+        }
+      );
+
+      if (response.data.success) {
+        clientInfo.removeToken();
+        return true;
+      } else {
+        showSnackbar(response.data.message, "error");
+        return false;
+      }
+    } catch (err) {
+      hideLoading();
+      showSnackbar("Có lỗi xảy ra khi đăng xuất. Vui lòng thử lại", err);
+      console.error("Có lỗi xảy ra khi đăng xuất:", err);
+      return false;
+    } finally {
+      hideLoading();
+    }
+  };
+
+  const fetchUpdatePrivacySetting = async (
+    profileVisibility,
+    chatPermission,
+    callPermission
+  ) => {
+    showLoading();
+    try {
+      const response = await axios.put(
+        `${clientInfo.serverName}/api/users/setting/update`,
+        {
+          profileVisibility,
+          chatPermission,
+          callPermission,
+        },
+        {
+          headers: {
+            Authorization: clientInfo.token,
+          },
+        }
+      );
+
+      if (response.data.success) {
+        return true;
+      } else {
+        showSnackbar(response.data.message, "error");
+        return false;
+      }
+    } catch (err) {
+      hideLoading();
+      showSnackbar("Có lỗi xảy ra khi cập nhật quyền. Vui lòng thử lại", err);
+      console.error("Có lỗi xảy ra khi cập nhật quyền:", err);
+      return false;
+    } finally {
+      hideLoading();
+    }
+  };
+
   const fetchMe = async () => {
     showLoading();
     try {
@@ -356,21 +425,23 @@ export const UserProvider = ({ children }) => {
       );
 
       if (response.data.success) {
-        if (response.data.data.isRemember) {
-          clientInfo.setUser(response.data.data);
-          return true;
-        } else {
-          return false;
-        }
+        return {
+          success: true,
+          data: response.data.data,
+        };
       } else {
         showSnackbar(response.data.message, "error");
-        return false;
+        return {
+          success: false,
+        };
       }
     } catch (err) {
       hideLoading();
       showSnackbar("Có lỗi xảy ra khi lấy thông tin người dùng", err);
       console.error("Có lỗi xảy ra khi lấy thông tin người dùng:", err);
-      return false;
+      return {
+        success: false,
+      };
     } finally {
       hideLoading();
     }
@@ -388,6 +459,9 @@ export const UserProvider = ({ children }) => {
         fetchUpdatePassword,
         fetchGoogleLogin,
         fetchFacebookLogin,
+        fetchLogout,
+        fetchUpdatePrivacySetting,
+        fetchMe,
       }}
     >
       {children}

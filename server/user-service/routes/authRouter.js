@@ -13,6 +13,7 @@ const {
   googleAuthCallback,
   facebookAuth,
   facebookAuthCallback,
+  logoutUser,
 } = require("../controllers/authController.js");
 const { body } = require("express-validator");
 
@@ -79,5 +80,7 @@ authRouter.get("/facebook", facebookAuth);
 authRouter.get("/google/callback", googleAuthCallback);
 
 authRouter.get("/facebook/callback", facebookAuthCallback);
+
+authRouter.post("/logout", logoutUser);
 
 module.exports = authRouter;

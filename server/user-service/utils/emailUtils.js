@@ -112,7 +112,7 @@ const verifyUser = async (userEmail, code) => {
       user.twoFactorSecret = "";
       await user.save();
 
-      return { success: true, message: "Mã xác nhận hợp lệ" };
+      return { success: true, message: "Mã xác nhận hợp lệ", data: user };
     } else {
       return { success: false, message: "Mã xác nhận không đúng" };
     }

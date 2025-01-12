@@ -1,13 +1,18 @@
 import React from "react";
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, Navigate } from "react-router-dom";
 import { useClientInfo } from "./contexts/ClientInfoContext";
 import ProtectedRoute from "./components/ProtectedRoute";
 import HomePage from "./pages/HomePage";
+import { HomeProvider } from "./contexts/HomeContext";
 import TwoStepVerification from "./components/TwoStepVerification";
 import AuthPage from "./pages/AuthPage";
 import NotFoundPage from "./pages/NotFoundPage";
 import ChangePassword from "./components/ChangePassword";
 import HandleLoginWithFacebookAndGoogle from "./pages/HandleLoginWithFacebookAndGoogle";
+import Messages from "./components/sections/Messages/Messages";
+import People from "./components/sections/People/People";
+import FriendRequests from "./components/sections/FriendRequests/FriendRequests";
+import Settings from "./components/sections/Settings/Settings";
 
 function App() {
   const { token, emailLogin } = useClientInfo();
@@ -44,10 +49,19 @@ function App() {
         path="/home"
         element={
           <ProtectedRoute condition={!!token} redirectTo="/">
-            <HomePage />
+            <HomeProvider>
+              <HomePage />
+            </HomeProvider>
           </ProtectedRoute>
         }
-      />
+      >
+        {/* Nested routes cho HomePage */}
+        <Route index element={<Navigate to="/home/messages" />} />
+        <Route path="messages" element={<Messages />} />
+        <Route path="people" element={<People />} />
+        <Route path="friendRequests" element={<FriendRequests />} />
+        <Route path="settings" element={<Settings />} />
+      </Route>
       {/* Route fallback cho các trang không hợp lệ */}
       <Route path="*" element={<NotFoundPage />} />
     </Routes>
