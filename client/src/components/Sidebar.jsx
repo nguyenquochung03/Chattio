@@ -93,23 +93,6 @@ const Sidebar = () => {
     { icon: <SettingsIcon />, text: "Cài đặt", route: "/home/settings" },
   ];
 
-  const getAvatar = (user) => {
-    if (user.avatar?.length > 0) {
-      return <Avatar src={user.avatar} />;
-    } else {
-      return (
-        <Avatar
-          sx={{
-            bgcolor: "primary.light",
-            color: "white",
-            fontWeight: 600,
-          }}
-          src={"https://cdn-icons-png.flaticon.com/128/3177/3177440.png"}
-        />
-      );
-    }
-  };
-
   const handleOpenDialog = () => {
     setOpenLogoutDialog(true);
     // Mở dialog, ẩn phần tử khác
@@ -158,6 +141,8 @@ const Sidebar = () => {
           isLargeMobile && !isSidebarHidden ? "white" : "transparent",
         borderTopLeftRadius: isLargeMobile ? 12 : 0,
         borderBottomLeftRadius: isLargeMobile ? 12 : 0,
+        transition:
+          "max-width 0.3s ease, min-width 0.3s ease, padding 0.3s ease",
       }}
     >
       {/* Biểu tượng trang web */}
@@ -311,7 +296,7 @@ const Sidebar = () => {
                 onClick={() => console.log("Avatar clicked!")}
               >
                 {clientInfo.user._id ? (
-                  getAvatar(clientInfo.user)
+                  clientInfo.getAvatar(clientInfo.user)
                 ) : (
                   <CircularProgress size={32} />
                 )}
@@ -425,7 +410,7 @@ const Sidebar = () => {
               paddingTop: 1,
             }}
           >
-            {getAvatar(clientInfo.user)}
+            {clientInfo.getAvatar(clientInfo.user)}
           </IconButton>
         </Tooltip>
       )}

@@ -1,4 +1,5 @@
 const User = require("../models/User");
+const { fetchConnectFriends } = require("../services/friendService");
 
 const fetchUserProfileByToken = async (req, res) => {
   try {
@@ -63,46 +64,6 @@ const fetchUserById = async (req, res) => {
   }
 };
 
-const searchUsersByUsernameForAddFriend = async (req, res) => {
-  try {
-    const { username } = req.query;
-
-    if (!username) {
-      return res.json({
-        success: false,
-        status: 400,
-        message: "Tên người dùng không được bỏ trống",
-      });
-    }
-
-    const users = await User.find({
-      username: { $regex: username, $options: "i" },
-    });
-
-    if (users.length === 0) {
-      return res.json({
-        success: false,
-        status: 404,
-        message: "Không tìm thấy người dùng nào với tên này",
-      });
-    }
-
-    return res.json({
-      success: true,
-      status: 200,
-      message: "Tìm kiếm người dùng thành công",
-      data: users,
-    });
-  } catch (error) {
-    console.error(error);
-    return res.json({
-      success: false,
-      status: 500,
-      message: "Xảy ra lỗi khi tìm kiếm người dùng",
-    });
-  }
-};
-
 const fetchUsersByIds = async (req, res) => {
   try {
     const { userIds } = req.body;
@@ -126,11 +87,46 @@ const fetchUsersByIds = async (req, res) => {
       data: users,
     });
   } catch (error) {
-    console.error(error);
+    console.error(
+      `Lỗi máy chủ khi thực hiện lấy thông tin người dùng: ${error.message}`
+    );
     return res.json({
       success: false,
       status: 500,
       message: `Lỗi máy chủ khi thực hiện lấy thông tin người dùng: ${error.message}`,
+    });
+  }
+};
+
+const searchUsersByUsername = async (req, res) => {
+  try {
+    const { username, userId } = req.query;
+
+    const users = await User.find({
+      username: { $regex: username, $options: "i" },
+      _id: { $ne: userId },
+    });
+
+    if (users.length === 0) {
+      return res.json({
+        success: false,
+        status: 404,
+        message: "Không tìm thấy người dùng nào với tên này",
+      });
+    }
+
+    return res.json({
+      success: true,
+      status: 200,
+      message: "Tìm kiếm người dùng thành công",
+      data: users,
+    });
+  } catch (error) {
+    console.error(error);
+    return res.json({
+      success: false,
+      status: 500,
+      message: "Xảy ra lỗi khi tìm kiếm người dùng",
     });
   }
 };
@@ -195,11 +191,58 @@ const updateUserConversationId = async (req, res) => {
   }
 };
 
+const getSuggestedUsers = async (req, res) => {
+  try {
+    const userId = req.user._id;
+    const page = parseInt(req.query.page) || 1;
+    const limit = 14;
+    const skip = (page - 1) * limit;
+
+    // Gọi API lấy danh sách bạn bè và bạn chung
+    const connectedResponse = await fetchConnectFriends(userId);
+
+    if (!connectedResponse.success) {
+      return res.json({
+        success: false,
+        status: connectedResponse.status,
+        message: connectedResponse.message,
+      });
+    }
+
+    const { connectedUserIds, mutualFriendIds } = connectedResponse.data;
+
+    const suggestedUsers = await User.find({
+      _id: { $nin: [...connectedUserIds, userId] },
+    })
+      .sort({
+        _id: { $in: mutualFriendIds } ? -1 : 1,
+      })
+      .skip(skip)
+      .limit(limit);
+
+    res.json({
+      success: true,
+      status: 200,
+      message: "Lấy danh sách gợi ý kết bạn thành công",
+      data: suggestedUsers,
+    });
+  } catch (error) {
+    console.error("Lỗi khi lấy danh sách gợi ý kết bạn:", error.message);
+    res.json({
+      success: false,
+      status: 500,
+      message: "Lỗi server khi lấy danh sách gợi ý kết bạn",
+      error: error.message,
+    });
+  }
+};
+
 module.exports = {
   fetchUserProfileByToken,
   fetchUserById,
-  searchUsersByUsernameForAddFriend,
+  searchUsersByUsername,
   fetchUsersByIds,
   updateUserStatusById,
   updateUserConversationId,
+  getSuggestedUsers,
 };

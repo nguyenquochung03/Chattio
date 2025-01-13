@@ -1,6 +1,6 @@
-// src/contexts/ResponsiveContext.js
 import React, { createContext, useContext } from "react";
 import { useMediaQuery } from "@mui/material";
+import ResponsiveButton from "../components/display/ResponsiveButton";
 
 const ResponsiveContext = createContext();
 
@@ -16,11 +16,21 @@ export const useResponsive = () => {
 };
 
 export const ResponsiveProvider = ({ children }) => {
+  const isSmallMobile = useMediaQuery("(max-width:377px)");
+  const isMobile = useMediaQuery("(max-width:500px)");
   const isLargeMobile = useMediaQuery("(max-width:650px)");
   const isSmallTablet = useMediaQuery("(max-width:700px)");
 
   return (
-    <ResponsiveContext.Provider value={{ isSmallTablet, isLargeMobile }}>
+    <ResponsiveContext.Provider
+      value={{
+        isSmallMobile,
+        isMobile,
+        isLargeMobile,
+        isSmallTablet,
+        ResponsiveButton,
+      }}
+    >
       {children}
     </ResponsiveContext.Provider>
   );

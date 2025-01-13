@@ -4,7 +4,7 @@ import { UAParser } from "ua-parser-js";
 import { useLoading } from "./LoadingContext";
 import { useClientInfo } from "./ClientInfoContext";
 import { useSnackbar } from "./SnackbarContext";
-import { useLocation } from "react-router-dom";
+import { data, useLocation } from "react-router-dom";
 
 const UserContext = createContext();
 
@@ -391,13 +391,19 @@ export const UserProvider = ({ children }) => {
         },
         {
           headers: {
-            Authorization: clientInfo.token,
+            Authorization: `Bearer ${clientInfo.token}`,
           },
         }
       );
 
       if (response.data.success) {
-        return true;
+        const result = await fetchMe();
+
+        if (result.success) {
+          clientInfo.setUser(result.data);
+          return true;
+        }
+        return false;
       } else {
         showSnackbar(response.data.message, "error");
         return false;
@@ -447,6 +453,62 @@ export const UserProvider = ({ children }) => {
     }
   };
 
+  const fetchGetSuggestedUsers = async (page = 1) => {
+    showLoading();
+    try {
+      const queryParams = new URLSearchParams({
+        page,
+      }).toString();
+
+      const response = await axios.get(
+        `${clientInfo.serverName}/api/users/user/suggestions?${queryParams}`,
+        {
+          headers: {
+            Authorization: `Bearer ${clientInfo.token}`,
+          },
+        }
+      );
+
+      if (response.data.success) {
+        return { success: true, data: response.data.data };
+      } else {
+        showSnackbar(response.data.message, "error");
+        return { success: false };
+      }
+    } catch (error) {
+      console.error("Lỗi khi lấy danh sách gợi ý kết bạn:", error.message);
+      showSnackbar(`Lỗi khi lấy danh sách gợi ý kết bạn: ${error.message}`);
+      hideLoading();
+      return { success: false };
+    } finally {
+      hideLoading();
+    }
+  };
+
+  const fetchSearchUsersByName = async (username) => {
+    showLoading();
+    try {
+      const response = await axios.get(
+        `${clientInfo.serverName}/api/users/user/search/userName/?username=${username}&userId=${clientInfo.user._id}`,
+        { username }
+      );
+
+      if (response.data.success) {
+        return { success: true, data: response.data.data };
+      } else {
+        showSnackbar(response.data.message, "error");
+        return { sucess: false };
+      }
+    } catch (err) {
+      hideLoading();
+      showSnackbar(`Có lỗi xảy ra khi tìm người dùng:`, err);
+      console.error(`Có lỗi xảy ra khi tìm người dùng:`, err);
+      return { sucess: false };
+    } finally {
+      hideLoading();
+    }
+  };
+
   return (
     <UserContext.Provider
       value={{
@@ -462,6 +524,8 @@ export const UserProvider = ({ children }) => {
         fetchLogout,
         fetchUpdatePrivacySetting,
         fetchMe,
+        fetchGetSuggestedUsers,
+        fetchSearchUsersByName,
       }}
     >
       {children}

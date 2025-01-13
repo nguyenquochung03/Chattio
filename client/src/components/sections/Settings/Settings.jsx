@@ -9,14 +9,7 @@ import {
   RadioGroup,
   ListItemIcon,
 } from "@mui/material";
-import {
-  GppMaybe,
-  Visibility,
-  People,
-  Lock,
-  Forum,
-  Call,
-} from "@mui/icons-material";
+import { GppMaybe, Public, People, Lock } from "@mui/icons-material";
 import { useUser } from "../../../contexts/UserContext";
 import { useClientInfo } from "../../../contexts/ClientInfoContext";
 
@@ -58,14 +51,11 @@ const Settings = () => {
         chatPermission,
         callPermission
       );
+
       setIsChanged(false);
     };
 
-    const timeoutId = setTimeout(() => {
-      updatePrivacySetting();
-    }, 1000);
-
-    return () => clearTimeout(timeoutId);
+    updatePrivacySetting();
   }, [profileVisibility, chatPermission, callPermission]);
 
   useEffect(() => {
@@ -203,7 +193,7 @@ const Settings = () => {
         [
           {
             value: "public",
-            icon: <Visibility sx={{ color: "primary.main" }} />,
+            icon: <Public sx={{ color: "primary.main" }} />,
             title: "Công khai",
             desc: "Mọi người đều có thể xem hồ sơ của bạn.",
           },
@@ -249,7 +239,7 @@ const Settings = () => {
         [
           {
             value: "everyone",
-            icon: <Forum sx={{ color: "primary.main" }} />,
+            icon: <Public sx={{ color: "primary.main" }} />,
             title: "Mọi người",
             desc: "Mọi người đều có thể trò chuyện với bạn.",
           },
@@ -295,7 +285,7 @@ const Settings = () => {
         [
           {
             value: "everyone",
-            icon: <Call sx={{ color: "primary.main" }} />,
+            icon: <Public sx={{ color: "primary.main" }} />,
             title: "Mọi người",
             desc: "Mọi người đều có thể gọi cho bạn.",
           },
