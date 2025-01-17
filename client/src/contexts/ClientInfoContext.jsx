@@ -16,6 +16,12 @@ export const ClientInfoProvider = ({ children }) => {
   const [token, setToken] = useState(localStorage.getItem("token") || "");
   const [isVerified, setIsVerified] = useState(false);
   const [user, setUser] = useState({});
+  // Số người dùng đã gửi lời mời kết bạn
+  const [friendRequestCount, setFriendRequestCount] = useState(0);
+  // Số lời mời kết bạn đã gửi
+  const [sentRequestCount, setSentRequestCount] = useState(0);
+  // Số lời mời kết bạn đã gửi và được chấp nhận
+  const [acceptedRequestCount, setAcceptedRequestCount] = useState(0);
 
   const saveToken = (newToken) => {
     localStorage.setItem("token", newToken);
@@ -111,6 +117,12 @@ export const ClientInfoProvider = ({ children }) => {
         setUser,
         isVerified,
         setIsVerified,
+        friendRequestCount,
+        setFriendRequestCount,
+        sentRequestCount,
+        setSentRequestCount,
+        acceptedRequestCount,
+        setAcceptedRequestCount,
       }}
     >
       {children}

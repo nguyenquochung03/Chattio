@@ -4,15 +4,123 @@ import { Box } from "@mui/material";
 import Sidebar from "../components/Sidebar";
 import { useResponsive } from "../contexts/ResponsiveContext";
 import { useHome } from "../contexts/HomeContext";
+import { useSocket } from "../contexts/SocketContext";
+import { useClientInfo } from "../contexts/ClientInfoContext";
+import { useFriend } from "../contexts/FriendContext";
 
 const HomePage = () => {
+  const clientInfo = useClientInfo();
   const responsive = useResponsive();
-  const { isSidebarHidden } = useHome();
+  const {
+    isSidebarHidden,
+    friendRequests,
+    setFriendRequests,
+    sentRequests,
+    setSentRequests,
+    acceptedConfirms,
+    setAcceptedConfirms,
+    friends,
+    setFriends,
+  } = useHome();
+  const friendContext = useFriend();
+  const socket = useSocket();
   const [isLargeMobile, setIsLargeMobile] = useState(responsive.isLargeMobile);
+
+  useEffect(() => {
+    if (clientInfo.user._id) {
+      socket.emit("register", { userId: clientInfo.user._id });
+    }
+  }, [clientInfo.user._id]);
+
+  useEffect(() => {
+    if (socket) {
+      socket.on("add-friend", async (data) => {
+        if (clientInfo.user._id) {
+          await fetchFriendRequestCount();
+
+          const updatedFriendRequests = [...friendRequests, data.sender];
+          setFriendRequests(updatedFriendRequests);
+        }
+      });
+
+      socket.on("cancel-request", async (data) => {
+        if (clientInfo.user._id) {
+          await fetchFriendRequestCount();
+
+          const updatedFriendRequests = friendRequests.filter(
+            (request) => request._id !== data.sender._id
+          );
+          setFriendRequests(updatedFriendRequests);
+        }
+      });
+
+      socket.on("reject-friend-request", async (data) => {
+        if (clientInfo.user._id) {
+          await fetchSentRequestCount();
+
+          const updatedSentRequests = sentRequests.filter(
+            (request) => request._id !== data.receiver._id
+          );
+
+          setSentRequests(updatedSentRequests);
+        }
+      });
+
+      socket.on("accept-friend-request", async (data) => {
+        if (clientInfo.user._id) {
+          await fetchSentRequestCount();
+          await fetchAcceptedRequestCount();
+
+          setAcceptedConfirms([...acceptedConfirms, data.receiver]);
+
+          const updatedSentRequests = sentRequests.filter(
+            (request) => request._id !== data.receiver._id
+          );
+
+          setSentRequests(updatedSentRequests);
+
+          // Cập nhật danh sách bạn bè
+          setFriends([...friends, data.receiver]);
+        }
+      });
+    }
+  }, [socket, clientInfo.user._id, sentRequests]);
+
+  useEffect(() => {
+    if (clientInfo.user._id) {
+      fetchFriendRequestCount();
+      fetchSentRequestCount();
+      fetchAcceptedRequestCount();
+    }
+  }, [clientInfo.user._id]);
 
   useEffect(() => {
     setIsLargeMobile(responsive.isLargeMobile);
   }, [responsive.isLargeMobile]);
+
+  const fetchFriendRequestCount = async () => {
+    const result = await friendContext.fetchFriendRequestCount();
+
+    if (result.success) {
+      clientInfo.setFriendRequestCount(result.data);
+    }
+  };
+
+  const fetchSentRequestCount = async () => {
+    const result = await friendContext.fetchSentRequestCount();
+
+    if (result.success) {
+      clientInfo.setSentRequestCount(result.data);
+    }
+  };
+
+  const fetchAcceptedRequestCount = async () => {
+    const result = await friendContext.fetchAcceptedRequestCount();
+
+    if (result.success) {
+      clientInfo.setAcceptedRequestCount(result.data);
+    }
+  };
 
   return (
     <Box

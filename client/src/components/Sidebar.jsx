@@ -7,7 +7,6 @@ import {
   ListItemButton,
   ListItemIcon,
   ListItemText,
-  Avatar,
   IconButton,
   CircularProgress,
   Tooltip,
@@ -31,6 +30,7 @@ import { useResponsive } from "../contexts/ResponsiveContext";
 import { useHome } from "../contexts/HomeContext";
 import { useUser } from "../contexts/UserContext";
 import { useNavigate } from "react-router-dom";
+import Badge from "@mui/material/Badge";
 
 const Sidebar = () => {
   const clientInfo = useClientInfo();
@@ -222,7 +222,26 @@ const Sidebar = () => {
                   },
                 }}
               >
-                {item.icon}
+                {item.text === "Mọi người" ? (
+                  <Badge
+                    color="error"
+                    badgeContent={
+                      clientInfo.sentRequestCount +
+                      clientInfo.acceptedRequestCount
+                    }
+                  >
+                    {item.icon}
+                  </Badge>
+                ) : item.text === "Yêu cầu kết bạn" ? (
+                  <Badge
+                    color="error"
+                    badgeContent={clientInfo.friendRequestCount}
+                  >
+                    {item.icon}
+                  </Badge>
+                ) : (
+                  item.icon
+                )}
               </IconButton>
             </Tooltip>
           ) : (
@@ -251,7 +270,23 @@ const Sidebar = () => {
                     color: focusedIndex === index ? "info.main" : "#424242",
                   }}
                 >
-                  {item.icon}
+                  {item.text === "Mọi người" ? (
+                    <Badge
+                      color="error"
+                      badgeContent={clientInfo.sentRequestCount}
+                    >
+                      {item.icon}
+                    </Badge>
+                  ) : item.text === "Yêu cầu kết bạn" ? (
+                    <Badge
+                      color="error"
+                      badgeContent={clientInfo.friendRequestCount}
+                    >
+                      {item.icon}
+                    </Badge>
+                  ) : (
+                    item.icon
+                  )}
                 </IconButton>
               </ListItemIcon>
               <ListItemText
@@ -291,7 +326,7 @@ const Sidebar = () => {
                   textTransform: "none",
                   width: "100%",
                   justifyContent: isSidebarHidden ? "center" : "flex-start",
-                  padding: "6px 12px", // Thêm khoảng cách trong Button
+                  padding: "6px 12px",
                 }}
                 onClick={() => console.log("Avatar clicked!")}
               >

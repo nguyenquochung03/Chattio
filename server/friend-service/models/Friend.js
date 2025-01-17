@@ -18,6 +18,10 @@ const friendSchema = new Schema(
       enum: ["pending", "accepted", "rejected", "blocked"],
       default: "pending",
     },
+    isConfirmed: {
+      type: Boolean,
+      default: false,
+    },
     createdAt: {
       type: Date,
       default: Date.now,

@@ -27,6 +27,8 @@ export const UserProvider = ({ children }) => {
           } else {
             clientInfo.setUser(result.data);
           }
+        } else {
+          clientInfo.removeToken();
         }
       }
     };
@@ -509,6 +511,30 @@ export const UserProvider = ({ children }) => {
     }
   };
 
+  const fetchSearchSuggestionsUser = async (username) => {
+    showLoading();
+    try {
+      const response = await axios.get(
+        `${clientInfo.serverName}/api/users/user/searchSuggestions/userName/?username=${username}&userId=${clientInfo.user._id}`,
+        { username }
+      );
+
+      if (response.data.success) {
+        return { success: true, data: response.data.data };
+      } else {
+        showSnackbar(response.data.message, "error");
+        return { sucess: false };
+      }
+    } catch (err) {
+      hideLoading();
+      showSnackbar(`Có lỗi xảy ra khi tìm người dùng:`, err);
+      console.error(`Có lỗi xảy ra khi tìm người dùng:`, err);
+      return { sucess: false };
+    } finally {
+      hideLoading();
+    }
+  };
+
   return (
     <UserContext.Provider
       value={{
@@ -526,6 +552,7 @@ export const UserProvider = ({ children }) => {
         fetchMe,
         fetchGetSuggestedUsers,
         fetchSearchUsersByName,
+        fetchSearchSuggestionsUser,
       }}
     >
       {children}

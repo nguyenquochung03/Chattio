@@ -1,36 +1,19 @@
 const Conversation = require("../models/Conversation");
 const axios = require("axios");
-
-const getUsersByIds = async (res, userIds) => {
-  const response = await axios.post(
-    "http://localhost:3000/api/users/account/getUsersByIds",
-    { userIds }
-  );
-
-  if (!response.data.success) {
-    return res.json({
-      success: false,
-      status: 404,
-      message: response.data.message,
-    });
-  }
-
-  return response.data.data;
-};
+const { getUsersByIds } = require("../services/userService");
 
 const createConversation = async (req, res) => {
   const { userId1, userId2 } = req.body;
   const userIds = [userId1, userId2];
 
   try {
-    // Kiểm tra xem hai người dùng có tồn tại không
-    const usersData = await getUsersByIds(res, userIds);
+    const usersData = await getUsersByIds(userIds);
 
-    if (userIds.length !== usersData.length) {
+    if (!usersData.success) {
       return res.json({
         success: false,
-        status: 404,
-        message: "Một trong hai người dùng không tồn tại",
+        status: usersData.status,
+        message: usersData.message,
       });
     }
 
@@ -62,11 +45,11 @@ const createConversation = async (req, res) => {
       data: savedConversation,
     });
   } catch (error) {
-    console.error(error);
+    console.error(`Lỗi khi tạo cuộc trò chuyện mới: ${error.message}`);
     return res.json({
       success: false,
       status: 500,
-      message: "Lỗi khi tạo cuộc trò chuyện mới",
+      message: `Lỗi khi tạo cuộc trò chuyện mới: ${error.message}`,
     });
   }
 };
@@ -76,23 +59,22 @@ const getConversation = async (req, res) => {
   const userIds = [userId1, userId2];
 
   try {
-    // Kiểm tra xem hai người dùng có tồn tại không
-    const usersData = await getUsersByIds(res, userIds);
+    const usersData = await getUsersByIds(userIds);
 
-    if (userIds.length !== usersData.length) {
+    if (!usersData.success) {
       return res.json({
         success: false,
-        status: 404,
-        message: "Một trong hai người dùng không tồn tại",
+        status: usersData.status,
+        message: usersData.message,
       });
     }
 
     // Kiểm tra xem cuộc trò chuyện đã tồn tại giữa hai người này chưa
-    const conversation = await Conversation.findOne({
+    const existingConversation = await Conversation.findOne({
       participants: { $size: 2, $all: [userId1, userId2] },
     });
 
-    if (!conversation) {
+    if (!existingConversation) {
       return res.json({
         success: false,
         status: 400,
@@ -104,14 +86,14 @@ const getConversation = async (req, res) => {
       success: true,
       status: 201,
       message: "Lấy thông tin cuộc trò chuyện thành công",
-      data: conversation,
+      data: existingConversation,
     });
   } catch (error) {
-    console.error(error);
+    console.error(`Lỗi khi lấy thông tin cuộc trò chuyện: ${error.message}`);
     return res.json({
       success: false,
       status: 500,
-      message: "Lỗi khi lấy thông tin cuộc trò chuyện",
+      message: `Lỗi khi lấy thông tin cuộc trò chuyện: ${error.message}`,
     });
   }
 };

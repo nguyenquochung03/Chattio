@@ -4,6 +4,12 @@ const http = require("http");
 const { createProxyMiddleware } = require("http-proxy-middleware");
 const socketIo = require("socket.io");
 const axios = require("axios");
+const {
+  setRedisData,
+  getRedisData,
+  deleteRedisData,
+  getAllUserSocketsKeys,
+} = require("./redisServer");
 require("dotenv").config();
 
 const app = express();
@@ -125,226 +131,93 @@ const io = socketIo(server, {
   },
 });
 
+// Lưu trữ socket của các người dùng
 io.on("connection", (socket) => {
-  console.log("User connected:", socket.id);
+  socket.on("register", async (data) => {
+    const { userId } = data;
+    const userKey = `userSockets:${userId}`;
+    // Lấy dữ liệu đã lưu trữ trong Redis
+    const result = await getRedisData(userKey);
 
-  let userId = null; // Lưu trữ userId liên kết với socket.id
-
-  // Lắng nghe sự kiện khi người dùng đăng nhập
-  socket.on("userLogin", async (dataUpdate) => {
-    try {
-      const userData = await getUserDataByToken(dataUpdate.token);
-      userId = userData._id; // Lưu lại userId để sử dụng khi ngắt kết nối
-
-      // Cập nhật trạng thái người dùng
-      const response = await axios.post(
-        "http://localhost:3000/api/users/account/updateStatus",
-        {
-          userId: userData._id,
-          status: dataUpdate.status,
-        }
-      );
-
-      if (response.data.success) {
-        // Phát sự kiện cập nhật trạng thái cho các client khác
-        io.emit("user-status", {
-          _id: userData._id,
-          status: "online",
-        });
-      }
-    } catch (error) {
-      console.error("Lỗi khi xử lý userLogin:", error.message);
-    }
-  });
-
-  socket.on("userLogout", async (dataUpdate) => {
-    try {
-      // Cập nhật trạng thái người dùng
-      const response = await axios.post(
-        "http://localhost:3000/api/users/account/updateStatus",
-        {
-          userId: userId,
-          status: dataUpdate.status,
-        }
-      );
-
-      if (response.data.success) {
-        // Phát sự kiện cập nhật trạng thái cho các client khác
-        io.emit("user-status", {
-          _id: userId,
-          status: "offline",
-        });
-      }
-    } catch (error) {
-      console.error("Lỗi khi xử lý userLogin:", error.message);
-    }
-  });
-
-  socket.on("join", (conversationId) => {
-    for (const room of socket.rooms) {
-      if (room !== socket.id) {
-        socket.leave(room);
-      }
-    }
-    console.log(`User ${socket.id} joining room: ${conversationId}`);
-    socket.join(conversationId);
-  });
-
-  socket.on("leave", (conversationId) => {
-    socket.leave(conversationId);
-  });
-
-  // Lắng nghe sự kiện "typing"
-  socket.on("typingStatus", (data) => {
-    if (!data || !data.conversation || !data.conversation._id) {
-      console.log("Invalid data received for typingStatus:", data);
-      return;
-    }
-
-    const { conversation, status } = data;
-    const { _id, participants } = conversation;
-
-    // Kiểm tra xem có những ai đang ở trong phòng
-    const participantsFromRoom = io.sockets.adapter.rooms.get(_id);
-
-    if (participantsFromRoom) {
-      // Gửi thông tin cho những người đang ở trong phòng
-      socket.to(_id).emit("typing", { status });
-    } else {
-      console.log(`Room ${_id} not found or no participants.`);
-    }
-  });
-
-  socket.on("sendMessage", async (data) => {
-    const { conversation, message } = data;
-
-    // Kiểm tra xem có những ai đang ở trong phòng
-    const participantsFromRoom = io.sockets.adapter.rooms.get(conversation._id);
-
-    if (participantsFromRoom) {
-      if (participantsFromRoom.size !== conversation.participants.length) {
-        message.status = "sent";
-
-        const result = await createNewMessage(
-          message.sender,
-          message.receiver,
-          conversation._id,
-          message.message,
-          message.status,
-          message.createdAt
-        );
-
-        if (result.success) {
-          socket.emit("updateMessageStatus", {
-            _id: message._id,
-            status: "sent",
-          });
-
-          socket.to(conversation._id).emit("receiveMessage", message);
-        } else {
-          console.error("Failed to create message:", result.message);
-        }
-      } else {
-        message.status = "read";
-
-        const result = await createNewMessage(
-          message.sender,
-          message.receiver,
-          conversation._id,
-          message.message,
-          message.status,
-          message.createdAt
-        );
-
-        if (result.success)
-          socket.emit("updateMessageStatus", {
-            _id: message._id,
-            status: "read",
-          });
-
-        // Gửi tin nhắn mới cho các thành viên khác trong phòng
-        socket.to(conversation._id).emit("receiveMessage", message);
+    if (result.success) {
+      const sockets = result.data;
+      // Kiểm tra nếu socket đã tồn tại trong danh sách
+      if (!sockets.some((s) => s === socket.id)) {
+        sockets.push(socket);
+        // Cập nhật lại danh sách socket vào Redis
+        await setRedisData(userKey, sockets);
       }
     } else {
-      console.log(`Room ${conversation._id} not found or no participants.`);
+      // Nếu chưa có dữ liệu, tạo mới danh sách socket
+      setRedisData(userKey, [socket]);
     }
   });
 
-  // Lắng nghe sự kiện khi người dùng ngắt kết nối
+  // Lắng nghe sự kiện thêm bạn bè
+  socket.on("add-friend", async (data) => {
+    const userKey = `userSockets:${data.receiverId}`;
+    const result = await getRedisData(userKey);
+    // Cập nhật từ id thành user và sau đó cập nhật ở client
+    if (result.success) {
+      socket.to(result.data).emit("add-friend", { sender: data.sender });
+    }
+  });
+
+  // Lắng nghe sự kiện hủy lời mời kết bạn
+  socket.on("cancel-request", async (data) => {
+    const userKey = `userSockets:${data.receiverId}`;
+    const result = await getRedisData(userKey);
+    // Cập nhật từ id thành user và sau đó cập nhật ở client
+    if (result.success) {
+      socket.to(result.data).emit("cancel-request", { sender: data.sender });
+    }
+  });
+
+  // Lắng nghe sự kiện từ chối lời mời kết bạn
+  socket.on("reject-friend-request", async (data) => {
+    const userKey = `userSockets:${data.senderId}`;
+    const result = await getRedisData(userKey);
+    // Cập nhật từ id thành user và sau đó cập nhật ở client
+    if (result.success) {
+      socket
+        .to(result.data)
+        .emit("reject-friend-request", { receiver: data.receiver });
+    }
+  });
+
+  // Lắng nghe sự kiện đồng ý lời mời kết bạn
+  socket.on("accept-friend-request", async (data) => {
+    const userKey = `userSockets:${data.senderId}`;
+    const result = await getRedisData(userKey);
+    // Cập nhật từ id thành user và sau đó cập nhật ở client
+    if (result.success) {
+      socket
+        .to(result.data)
+        .emit("accept-friend-request", { receiver: data.receiver });
+    }
+  });
+
   socket.on("disconnect", async () => {
-    console.log(`User disconnected: ${socket.id}`);
+    // Xử lý ngắt kết nối cho từng người dùng
+    const allUserIds = await getAllUserSocketsKeys("userSockets:*");
+
+    for (let userKey of allUserIds.data) {
+      const result = await getRedisData(userKey);
+      if (result.success) {
+        const sockets = result.data;
+        const index = sockets.indexOf(socket.id);
+        if (index !== -1) {
+          sockets.splice(index, 1);
+          if (sockets.length === 0) {
+            await deleteRedisData(userKey);
+          } else {
+            await setRedisData(userKey, sockets);
+          }
+        }
+      }
+    }
   });
 });
-
-// Hàm lấy thông tin người dùng từ token
-const getUserDataByToken = async (token) => {
-  try {
-    const response = await axios.get(
-      "http://localhost:3000/api/users/account/profile",
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      }
-    );
-
-    if (!response.data.success) {
-      console.log(response.data.message);
-      return;
-    }
-
-    return response.data.data;
-  } catch (error) {
-    console.error("Lỗi khi lấy thông tin người dùng:", error.message);
-    throw error;
-  }
-};
-
-const createNewMessage = async (
-  senderId,
-  receiverId,
-  conversationId,
-  messageContent,
-  status,
-  createdAt
-) => {
-  try {
-    const response = await axios.post(
-      "http://localhost:3000/api/chats/message/create",
-      {
-        senderId,
-        receiverId,
-        conversationId,
-        messageContent,
-        status,
-        createdAt,
-      }
-    );
-
-    // Kiểm tra thành công hay không
-    if (response.data.success) {
-      return {
-        success: true,
-        message: response.data.message || "Message created successfully",
-        data: response.data.data || null, // Trả về dữ liệu từ API nếu có
-      };
-    } else {
-      return {
-        success: false,
-        message: response.data.message || "Failed to create message",
-        data: null,
-      };
-    }
-  } catch (error) {
-    console.error("Error creating new message:", error.message);
-
-    return {
-      success: false,
-      message: error.message || "An unknown error occurred",
-      data: null,
-    };
-  }
-};
 
 server.listen(port, () => {
   console.log(`API Gateway đang chạy trên http://localhost:${port}`);

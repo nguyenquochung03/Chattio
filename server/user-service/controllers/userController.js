@@ -1,5 +1,9 @@
 const User = require("../models/User");
-const { fetchConnectFriends } = require("../services/friendService");
+const {
+  fetchConnectFriends,
+  fetchGetFriendsByUserId,
+} = require("../services/friendService");
+const { getUsersByName } = require("../utils/userUtils");
 
 const fetchUserProfileByToken = async (req, res) => {
   try {
@@ -76,9 +80,7 @@ const fetchUsersByIds = async (req, res) => {
       });
     }
 
-    const users = await User.find({ _id: { $in: userIds } }).select(
-      "username email status"
-    );
+    const users = await User.find({ _id: { $in: userIds } });
 
     return res.json({
       success: true,
@@ -99,15 +101,59 @@ const fetchUsersByIds = async (req, res) => {
 };
 
 const searchUsersByUsername = async (req, res) => {
-  try {
-    const { username, userId } = req.query;
+  const { username, userId } = req.query;
 
-    const users = await User.find({
-      username: { $regex: username, $options: "i" },
-      _id: { $ne: userId },
+  const result = await getUsersByName(username, userId);
+
+  if (result.success) {
+    return res.json({
+      success: true,
+      status: result.status,
+      message: result.message,
+      data: result.data,
     });
+  } else {
+    return res.json({
+      success: false,
+      status: result.status,
+      message: result.message,
+    });
+  }
+};
 
-    if (users.length === 0) {
+const searchUsersByUsernameInSuggestions = async (req, res) => {
+  const { username, userId } = req.query;
+
+  try {
+    const userByName = await getUsersByName(username, userId);
+
+    if (!userByName.success) {
+      return res.json({
+        success: false,
+        status: userByName.status,
+        message: userByName.message,
+      });
+    }
+
+    const friends = await fetchGetFriendsByUserId(userId);
+
+    if (!friends.success) {
+      return res.json({
+        success: false,
+        status: friends.status,
+        message: friends.message,
+      });
+    }
+
+    const friendIds = friends.data.map((id) => id.toString());
+
+    const suggestedUsers = userByName.data.filter(
+      (user) =>
+        !friendIds.includes(user._id.toString()) &&
+        user._id.toString() !== userId
+    );
+
+    if (suggestedUsers.length === 0) {
       return res.json({
         success: false,
         status: 404,
@@ -115,18 +161,18 @@ const searchUsersByUsername = async (req, res) => {
       });
     }
 
-    return res.json({
+    res.json({
       success: true,
       status: 200,
-      message: "Tìm kiếm người dùng thành công",
-      data: users,
+      message: "Gợi ý người dùng thành công",
+      data: suggestedUsers,
     });
   } catch (error) {
-    console.error(error);
-    return res.json({
+    console.error(`Lỗi server khi tìm kiếm người dùng: ${error.message}`);
+    res.json({
       success: false,
       status: 500,
-      message: "Xảy ra lỗi khi tìm kiếm người dùng",
+      message: `Lỗi server khi tìm kiếm người dùng: ${error.message}`,
     });
   }
 };
@@ -195,7 +241,7 @@ const getSuggestedUsers = async (req, res) => {
   try {
     const userId = req.user._id;
     const page = parseInt(req.query.page) || 1;
-    const limit = 14;
+    const limit = 18;
     const skip = (page - 1) * limit;
 
     // Gọi API lấy danh sách bạn bè và bạn chung
@@ -245,4 +291,5 @@ module.exports = {
   updateUserStatusById,
   updateUserConversationId,
   getSuggestedUsers,
+  searchUsersByUsernameInSuggestions,
 };

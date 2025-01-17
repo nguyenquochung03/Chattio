@@ -73,7 +73,41 @@ const loginWithFacebook = async (profile) => {
   }
 };
 
+const getUsersByName = async (username, userId) => {
+  try {
+    const users = await User.find({
+      username: { $regex: username, $options: "i" },
+      _id: { $ne: userId },
+    });
+
+    if (users.length === 0) {
+      return {
+        success: false,
+        status: 404,
+        message: "Không tìm thấy người dùng nào với tên này",
+      };
+    }
+
+    return {
+      success: true,
+      status: 200,
+      message: "Tìm kiếm người dùng thành công",
+      data: users,
+    };
+  } catch (error) {
+    console.error(
+      `Xảy ra lỗi khi tìm kiếm người dùng bằng tên: ${error.message}`
+    );
+    return {
+      success: false,
+      status: 500,
+      message: `Xảy ra lỗi khi tìm kiếm người dùng bằng tên: ${error.message}`,
+    };
+  }
+};
+
 module.exports = {
   loginWithGoogle,
   loginWithFacebook,
+  getUsersByName,
 };

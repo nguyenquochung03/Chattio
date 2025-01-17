@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import { useClientInfo } from "./contexts/ClientInfoContext";
 import ProtectedRoute from "./components/ProtectedRoute";
